@@ -5,7 +5,7 @@ import math
 pygame.init()
 
 # defining the constant values for the game
-FPS = 60
+FPS = 100
 
 WIDTH,HEIGHT = 800,800
 ROWS = 4
@@ -69,11 +69,18 @@ class Tile:
             ),
         )
     
-    def setPosition(self):
-        pass
+    def setPosition(self,ceil = False):
+        if ceil:
+            self.row = math.ceil(self.y / RECT_HEIGHT)
+            self.col = math.ceil(self.x / RECT_WIDTH)
+        else:
+            self.row = math.floor(self.y / RECT_HEIGHT)
+            self.col = math.floor(self.x / RECT_WIDTH)
+        
 
     def move(self, delta):
-        pass
+        self.x += delta[0]
+        self.y += delta[1]
 
 
 
@@ -114,7 +121,111 @@ def getRandomPos(tiles):
     
     return row,col
 
+def moveTiles(window,tiles,clock,direction):
+    updated = True
+    blocks = set()
 
+    if direction == "left":
+        sortFunc = lambda x : x.col
+        reverse  = False
+        delta = (-MOVE_VEL,0) #specifing velocity (- due to left movement)
+        boundaryCheck = lambda tile : tile.col == 0
+        getNextTile = lambda tile: tiles.get(f"{tile.row}{tile.col-1}")
+        mergeCheck = lambda tile, next_tile : tile.x > next_tile.x + MOVE_VEL # to get to position just berfore merging, when partial merge has taken place
+        moveCheck = (
+        lambda tile,next_tile : tile.x > next_tile.x + RECT_WIDTH + MOVE_VEL
+        )
+        ceil = True
+
+    
+    elif direction == "right":
+        sortFunc = lambda x : x.col
+        reverse  = True
+        delta = (MOVE_VEL,0) #specifing velocity (- due to left movement)
+        boundaryCheck = lambda tile : tile.col == COLS - 1
+        getNextTile = lambda tile: tiles.get(f"{tile.row}{tile.col+1}")
+        mergeCheck = lambda tile, next_tile : tile.x < next_tile.x - MOVE_VEL # to get to position just berfore merging, when partial merge has taken place
+        moveCheck = (
+        lambda tile,next_tile : tile.x + RECT_WIDTH + MOVE_VEL < next_tile.x 
+        )
+        ceil = False
+
+    elif direction == "up":
+        sortFunc = lambda x : x.row
+        reverse  = False
+        delta = (0,-MOVE_VEL) #specifing velocity (- due to left movement)
+        boundaryCheck = lambda tile : tile.row == 0
+        getNextTile = lambda tile: tiles.get(f"{tile.row-1}{tile.col}")
+        mergeCheck = lambda tile, next_tile : tile.y > next_tile.y + MOVE_VEL # to get to position just berfore merging, when partial merge has taken place
+        moveCheck = (
+        lambda tile,next_tile : tile.y > next_tile.y + RECT_HEIGHT + MOVE_VEL
+        )
+        ceil = True
+    
+    elif direction == "down":
+        sortFunc = lambda x : x.row
+        reverse  = True
+        delta = (0,MOVE_VEL) #specifing velocity (- due to left movement)
+        boundaryCheck = lambda tile : tile.row == ROWS - 1 
+        getNextTile = lambda tile: tiles.get(f"{tile.row+1}{tile.col}")
+        mergeCheck = lambda tile, next_tile : tile.y < next_tile.y - MOVE_VEL # to get to position just berfore merging, when partial merge has taken place
+        moveCheck = (
+        lambda tile,next_tile : tile.y + RECT_HEIGHT + MOVE_VEL < next_tile.y 
+        )
+        ceil = False
+
+    while updated:
+        clock.tick(FPS)
+        updated = False
+        sortedTiles = sorted(tiles.values(), key = sortFunc, reverse= reverse)
+
+        for i, tile in enumerate(sortedTiles):
+            if boundaryCheck(tile):
+                continue
+            
+            next_tile = getNextTile(tile)
+            if not next_tile:
+                tile.move(delta)
+            
+            elif (
+                tile.value == next_tile.value 
+                and tile not in blocks
+                and next_tile not in blocks
+            ):
+                if mergeCheck(tile,next_tile):
+                    tile.move(delta)
+                else:
+                    next_tile.value *=2
+                    sortedTiles.pop(i)
+                    blocks.add(next_tile)
+            
+            elif moveCheck(tile,next_tile):
+                tile.move(delta)
+
+            else:
+                continue
+
+            tile.setPosition(ceil)
+            updated = True
+        updateTiles(window,tiles,sortedTiles)
+    
+    endMove(tiles)
+
+
+def endMove(tiles):
+    if len(tiles) == 16:
+        return "lost"
+    
+    row,col  = getRandomPos(tiles)
+    tiles[f"{row}{col}"] = Tile(random.choice([2,4]),row,col)
+
+
+def updateTiles(window,tiles, sortedTiles):
+    tiles.clear()
+    for tile in sortedTiles:
+        tiles[f"{tile.row}{tile.col}"] = tile
+    
+    board(window,tiles)
 
 def generteTiles():
     tiles = {}
@@ -140,6 +251,20 @@ def main(window):
             if event.type == pygame.QUIT: #to exit the game
                 run = False
                 break
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT or event.key == pygame.K_a :
+                  moveTiles(window,tiles,clock,"left")
+                
+                if event.key == pygame.K_RIGHT or event.key == pygame.K_d :
+                  moveTiles(window,tiles,clock,"right")  
+                
+                if event.key == pygame.K_UP or event.key == pygame.K_w :
+                  moveTiles(window,tiles,clock,"up")  
+                
+                if event.key == pygame.K_DOWN or event.key == pygame.K_s :
+                  moveTiles(window,tiles,clock,"down")  
+
         board(window,tiles)
 
     pygame.quit()
