@@ -234,8 +234,50 @@ def generteTiles():
         tiles[f'{row}{col}'] = Tile(2,row,col)
     return tiles
 
+def start_menu(window):
+    menu_run = True
+    logo = pygame.image.load('logo.png')  # Load the logo image
+    logo_rect = logo.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 100))  # Position the logo above the menu text
+
+    while menu_run:
+        window.fill(BACKGROUND_COLOR)  # Use the background color you've defined
+        
+        window.blit(logo, logo_rect)  # Render the logo
+
+        text_padding = 20
+        welcome_text_y_pos = logo_rect.bottom + text_padding
+
+        # Add "Welcome!" text
+        welcome_text = FONT.render('Welcome!', True, FONT_COLOR)
+        window.blit(welcome_text, (WIDTH // 2 - welcome_text.get_width() // 2, welcome_text_y_pos))
+
+        # Adjust the position of the "Press SPACE to Start" text
+        menu_text_y_pos = welcome_text_y_pos + welcome_text.get_height() + text_padding
+
+        menu_text = FONT.render('Press SPACE to Start', True, FONT_COLOR)
+        window.blit(menu_text, (WIDTH // 2 - menu_text.get_width() // 2, menu_text_y_pos))
+        
+        # Small text at the bottom of the screen
+        small_font = pygame.font.Font(None, 24)  # Create a smaller font. Adjust size as needed.
+        small_text = small_font.render('by- Eshan Dutta', True, FONT_COLOR)
+        small_text_x_pos = WIDTH // 2 - small_text.get_width() // 2
+        small_text_y_pos = HEIGHT - small_text.get_height() - 10  # Adjust padding at the bottom as needed
+        window.blit(small_text, (small_text_x_pos, small_text_y_pos))
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                menu_run = False
+                pygame.quit()
+                exit()  # Make sure to exit the program if the window is closed
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    menu_run = False  # Exit the menu loop to start the game
+        
+        pygame.display.update()
+
 #Main loop
 def main(window):
+    start_menu(window)
     clock = pygame.time.Clock() #regulate the speed of the loop
     run = True
 
